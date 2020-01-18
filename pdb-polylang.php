@@ -32,7 +32,7 @@
   - and page IDs
   according to the current language defined by polylang.
 
-  It defines two filters attached to the two filter hooks 'pdb-translate_string' and 'pdb-select_page_id' used by participants-database :
+  It defines two filters attached to the two filter hooks 'pdb-translate_string' and 'pdb-lang_page_id' used by participants-database :
 
   1 - Filter attached to 'pdb-translate_string'
   This filter will process its input string which is supposed to be a multilingual string.
@@ -48,7 +48,7 @@
   multilingual string for the current language.
 
   Examples :
-  [:fr]Maison[:de]Haus[:en]House[:]Casa
+  [:fr]Maison[:de]Haus[:en]House[:es]Casa
 
   With PLL4PDb a dynamic string of PDb will be displayed as follows :
   a- When PLL has defined no current language, the whole string will be displayed.
@@ -63,9 +63,9 @@
   value is displayed.
   Otherwise the whole string is displayed.
 
-  2- Filter attached to 'pdb-select_page_id'
+  2- Filter attached to 'pdb-lang_page_id'
   With polylang each "logical page" of a website is in fact a set of several pages, one for each language supported.
-  The filter attached to 'pdb-select_page_id' receives the page Id of p as input: it returns the page Id of q, where q
+  The filter attached to 'pdb-lang_page_id' receives the page Id of p as input: it returns the page Id of q, where q
   is the page of the set of p that corresponds to the current language defined by polylang.
 
  */
@@ -78,15 +78,21 @@ class PLL4PDb {
 
   public function __construct()
   {
-    add_filter( 'pdb-translate_string', array($this, 'translate_str') );
-    add_filter( 'pdb-select_page_id', array($this, 'select_page_id') );
-    
-    if ( ! defined( 'PDB_MULTILINGUAL' ) ) {
+    add_filter( 'pdb-translate_string', array($this, 'translate_string') );
+    add_filter( 'pdb-lang_page_id', array($this, 'language_page_id') );
+
+    if ( !defined( 'PDB_MULTILINGUAL' ) ) {
       define( 'PDB_MULTILINGUAL', true );
     }
   }
 
-  public function select_page_id( $in_id )
+  /**
+   * sets the multilingual page id
+   * 
+   * @param int $in_id requested page id
+   * @return int the language selected page id
+   */
+  public function language_page_id( $in_id )
   {
     if ( pll_current_language( 'slug' ) == '' )
       $out_id = $in_id;
@@ -95,45 +101,57 @@ class PLL4PDb {
     return $out_id;
   }
 
-  public function translate_str( $in_string )
+  /**
+   * provides the currently selected language from a multilingual string
+   * 
+   * @param string $in_string the multilingual string
+   * @return string
+   */
+  public function translate_string( $in_string )
   {
     $cur_lang = pll_current_language( 'slug' );
-    /*
-     * cur_lang = current language as set by PLL 
-     * if empty, no current language has been set (for instance in the admin part)
-     */
-    if ( $cur_lang == '' ) {
-      
-      $temp = $in_string; /* no filter in this case */
+
+    if ( strpos( $in_string, '[:' ) === false ) {
+
+      // not a multilingual string
+      $translation = $in_string;
     } else { // s modifier is used with PCRE's to allow strings split over several lines
-      
-      $temp = preg_filter( '/.*\[:' . $cur_lang . '\](([^\[]|\[[^:])*)(\[:.*|$)/s', '$1', $in_string );
-      if ( $temp == '' ) { /* There is no translation for the language - Search for a default value */
-        $temp = preg_filter( '/.*\[:\](([^\[]|\[[^:])*)(\[:.*|$)/s', '$1', $in_string );
-        if ( $temp == '' )
+      $translation = preg_filter( '/.*\[:' . $cur_lang . '\](([^\[]|\[[^:])*)(\[:.*|$)/s', '$1', $in_string );
+
+      if ( $translation == '' ) { /* There is no translation for the language - Search for a default value */
+        $translation = preg_filter( '/.*\[:\](([^\[]|\[[^:])*)(\[:.*|$)/s', '$1', $in_string );
+
+        if ( $translation == '' )
         /* There is no default value - Return the whole string */
-          $temp = $in_string;
+          $translation = $in_string;
       }
     }
 
-    return $temp;
+    return $translation;
   }
 
 }
 
-/**
- * Check for PlyLang before initializing the plugin
- */
-if ( in_array( 'polylang/polylang.php', apply_filters( 'active_plugins', get_option('active_plugins') ) ) ) {
-
-  if ( !class_exists( 'PLL4PDb' ) ) { // check for the uninitialized class
-    new PLL4PDb();
-  }
+// initialize after Particiants Database is initialized
+if ( class_exists( 'Participants_Db' ) ) {
+  pll4pdb_initialize();
 } else {
+  add_action( 'participants-database_activated', 'pll4pdb_initialize' );
+}
 
-  add_action( 'admin_notices', 'pll4pdb_pll_missing_error' );
+function pll4pdb_initialize()
+{
+  /**
+   * Check for Polylang before instantiating the plugin class
+   */
+  if ( function_exists( 'pll_current_language' ) ) {
 
-  add_action( 'admin_init', 'pll4pdb_deactivate_plugin' );
+    new PLL4PDb();
+  } else {
+
+    add_action( 'admin_notices', 'pll4pdb_pll_missing_error' );
+    add_action( 'admin_init', 'pll4pdb_deactivate_plugin' );
+  }
 }
 
 function pll4pdb_deactivate_plugin()
