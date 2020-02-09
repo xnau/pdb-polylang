@@ -3,11 +3,11 @@
 /**
  * PLL4PDb
  *
- * @package           PLL4PDb
- * @author            Pierre Fischer
+ * @package           WordPress
+ * @author            Pierre Fischer, xnau
  * @copyright         2020 Pierre Fischer
  * @license           GPL3
- * @version           1.1
+ * @version           1.2
  *
  * @wordpress-plugin
  * Plugin Name:       PLL4PDb
@@ -36,32 +36,36 @@
 
   1 - Filter attached to 'pdb-translate_string'
   This filter will process its input string which is supposed to be a multilingual string.
-  A multilingual string is a string that defines various display values for various languages.
+  A multilingual string is a string that may contain various substrings that should be displayed only
+  for given languages.
 
-  With PLL4PDb the format of a multilingual string is the following :
-  [:x1]String value 1[:x2]String value 2[:x3]....
+  With PLL4PDb the format of a multilingual string is close to the one used by QTranslate-X:
+
+  Language-neutral text[:x1]Text for language x1[:x2]Text for x2[:]another language-neutral text
   where
   x1, x2... are language slugs (ie 2 letters codes of languages) or an empty string,
-  [:xi] introduces the string (up to the next [:xx] or the end of the whole string)
-  that will be displayed when the current language is xi,
-  [:] is a special case which introduces a default display value when there is no translation in the
-  multilingual string for the current language.
+  [:xi] introduces a substring (up to the next [:xx], [:] or the end of the whole string)
+  that will be displayed only when the current language is xi,
+  [:] is a special case which might be used to terminate a language dependant substring.
 
-  Examples :
-  [:fr]Maison[:de]Haus[:en]House[:es]Casa
+  Example :
+  "[:fr]Maison à[:de]Haus in[:en]House in[:]Paris[:fr] Oui[:en] Yeah[:de]Hopla[:]!"
+  will be displayed as "Maison à Paris Oui!" when the current language is fr
+  as "Haus in Paris Hopla!" when the current language is de
+  and as "House in Paris Yeah!" when the current language is en.
 
-  With PLL4PDb a dynamic string of PDb will be displayed as follows :
-  a- When PLL has defined no current language, the whole string will be displayed.
+  More precisely, with PLL4PDb a dynamic string of PDb is displayed as follows :
+  a- When PLL has defined no current language,
+  the string isn't modified and is displayed as it is.
   No current language is namely set when PLL wants to enable the display of strings in all available languages,
   for instance in the backend.
-  PLL4PDb operates according to this rule.
 
   b- When a current language has been set by PLL,
-  if the string is a multilingual string and contains a display value for the current language,
-  this value is displayed.
-  Otherwise, if the string is a multilingual string and contains a default display value, this default
-  value is displayed.
-  Otherwise the whole string is displayed.
+  all the substrings corresponding to a language different from the current one are removed before
+  the string is displayed; the headers [:xx] are also removed.
+  Notice:
+  According to the above process, normal strings (those that contain no language-dependant substrings)
+  are always displayed entirely.
 
   2- Filter attached to 'pdb-lang_page_id'
   With polylang each "logical page" of a website is in fact a set of several pages, one for each language supported.
@@ -78,7 +82,11 @@ class PLL4PDb {
 
   public function __construct()
   {
-    add_filter( 'pdb-translate_string', array($this, 'translate_string') );
+    /* 
+     * Participants Database places a handler on this filter at priority 20, so 
+     * this one will be applied before that and essentially override it
+     */
+    add_filter( 'pdb-translate_string', array($this, 'translate_string'), 10 );
     add_filter( 'pdb-lang_page_id', array($this, 'language_page_id') );
 
     if ( !defined( 'PDB_MULTILINGUAL' ) ) {
@@ -94,10 +102,14 @@ class PLL4PDb {
    */
   public function language_page_id( $in_id )
   {
-    if ( pll_current_language( 'slug' ) == '' )
+    if ( pll_current_language( 'slug' ) == '' ) {
+      
       $out_id = $in_id;
-    else
+    } else {
+      
       $out_id = pll_get_post( $in_id );
+    }
+    
     return $out_id;
   }
 
@@ -109,22 +121,24 @@ class PLL4PDb {
    */
   public function translate_string( $in_string )
   {
-    $cur_lang = pll_current_language( 'slug' );
+    $lang = pll_current_language( 'slug' );
 
-    if ( strpos( $in_string, '[:' ) === false ) {
+    if ( $lang === '' || strpos( $in_string, '[:' ) === false ) {
 
       // not a multilingual string
       $translation = $in_string;
-    } else { // s modifier is used with PCRE's to allow strings split over several lines
-      $translation = preg_filter( '/.*\[:' . $cur_lang . '\](([^\[]|\[[^:])*)(\[:.*|$)/s', '$1', $in_string );
+    } else {
 
-      if ( $translation == '' ) { /* There is no translation for the language - Search for a default value */
-        $translation = preg_filter( '/.*\[:\](([^\[]|\[[^:])*)(\[:.*|$)/s', '$1', $in_string );
-
-        if ( $translation == '' )
-        /* There is no default value - Return the whole string */
-          $translation = $in_string;
-      }
+      /*
+       * Keep the substrings set for the current language, get rid of the ones 
+       * set for other languages and replace all '[:xx]' with '[:]'.At the end 
+       * remove all the remaining '[:]'
+       * a string with no language-dependant substring remains unchanged
+       */
+      $translation = preg_replace(
+              array( '/\[:' . $lang . '\](([^\[]|\[[^:])*)/s', '/\[:..\]([^\[]|\[[^:])*/s', '/\[:\]/' ),
+              array( '[:]$1', '[:]', '' ),
+              $in_string );
     }
 
     return $translation;
