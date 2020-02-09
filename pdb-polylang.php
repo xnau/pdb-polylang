@@ -88,10 +88,6 @@ class PLL4PDb {
      */
     add_filter( 'pdb-translate_string', array($this, 'translate_string'), 10 );
     add_filter( 'pdb-lang_page_id', array($this, 'language_page_id') );
-
-    if ( !defined( 'PDB_MULTILINGUAL' ) ) {
-      define( 'PDB_MULTILINGUAL', true );
-    }
   }
 
   /**
