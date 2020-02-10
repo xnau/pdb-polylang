@@ -11,14 +11,17 @@
  *
  * @wordpress-plugin
  * Plugin Name:       PLL4PDb
- * Description:       Enables the plugin participants-database (PDb) to run in a multilingual environment with polylang (PLL). Requires the Polylang plugin and Participants Database version 1.9.5.5 or higher.
- * Version:           1.1
+ * Description:       Enables the plugin participants-database (PDb) to run in a multilingual environment with polylang (PLL). Requires the Polylang plugin and Participants Database version 1.9.5.7 or higher.
+ * Version:           1.2
  * Requires at least: 5.2
  * Requires PHP:      5.6
  * Author:            Pierre Fischer
  * License:           GPL3
  * License URI:       http://www.gnu.org/licenses/gpl-3.0.txt
+ * Text Domain:       pll4pdb
+ * Domain Path:       /languages
  */
+ 
 /* Desciption : See readme.txt file
 
   Additional description:
@@ -132,7 +135,7 @@ class PLL4PDb {
        * a string with no language-dependant substring remains unchanged
        */
       $translation = preg_replace(
-              array( '/\[:' . $lang . '\](([^\[]|\[[^:])*)/s', '/\[:..\]([^\[]|\[[^:])*/s', '/\[:\]/' ),
+              array( '/\[:' . $lang . '\](([^\[]|\[[^:])*)/s', '/\[:[a-z][a-z]\]([^\[]|\[[^:])*/s', '/\[:\]/' ),
               array( '[:]$1', '[:]', '' ),
               $in_string );
     }
@@ -142,20 +145,20 @@ class PLL4PDb {
 
 }
 
-// initialize after Particiants Database is initialized
-if ( class_exists( 'Participants_Db' ) ) {
-  pll4pdb_initialize();
-} else {
-  add_action( 'participants-database_activated', 'pll4pdb_initialize' );
-}
+
+// initialize plugin only after all plugins are loaded
+add_action( 'plugins_loaded' , 'pll4pdb_initialize' );
+
 
 function pll4pdb_initialize()
 {
   /**
-   * Check for Polylang before instantiating the plugin class
+   * Check for Polylang and Participants Database before initializing
    */
-  if ( function_exists( 'pll_current_language' ) ) {
-
+  if ( function_exists( 'pll_current_language' ) && class_exists( 'Participants_Db' ) ) {
+    // Load translations
+    load_plugin_textdomain ( 'pll4pdb', false, basename(rtrim(dirname(__FILE__), '/')) . '/languages' );
+    // and instantiate the plugin class
     new PLL4PDb();
   } else {
 
@@ -171,7 +174,7 @@ function pll4pdb_deactivate_plugin()
 
 function pll4pdb_pll_missing_error()
 {
-  echo '<div class="notice notice-error is-dismissible"><p><span class="dashicons dashicons-warning"></span>' . __( 'The PLL4PDb plugin requres the PolyLang plugin. The Plugin has been auto-deactivated.', 'pll4pdb' ) . '</p></div>';
+  echo '<div class="notice notice-error is-dismissible"><p><span class="dashicons dashicons-warning"></span>' . __( 'The PLL4PDb plugin requires both the Polylang and Participants Database plugins. At least one of them is missing. PLL4PDb has been auto-deactivated.', 'pll4pdb' ) . '</p></div>';
   if ( isset( $_GET['activate'] ) ) {
     unset( $_GET['activate'] );
   }
