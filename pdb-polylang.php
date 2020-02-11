@@ -58,17 +58,12 @@
   and as "House in Paris Yeah!" when the current language is en.
 
   More precisely, with PLL4PDb a dynamic string of PDb is displayed as follows :
-  a- When PLL has defined no current language,
-  the string isn't modified and is displayed as it is.
-  No current language is namely set when PLL wants to enable the display of strings in all available languages,
-  for instance in the backend.
-
-  b- When a current language has been set by PLL,
-  all the substrings corresponding to a language different from the current one are removed before
+  a- When the string doesn't contain any language dependant substring it isn't modified and is displayed as it is.
+  
+  b- The "current language" set by PLL is selected. When there is no such current language - which may happen in the back end 
+  when polylang wants to "Show all languages" -, the so called "default language" of polylang is selected instead.
+  Then all the substrings corresponding to a language different from the selected one are removed before
   the string is displayed; the headers [:xx] are also removed.
-  Notice:
-  According to the above process, normal strings (those that contain no language-dependant substrings)
-  are always displayed entirely.
 
   2- Filter attached to 'pdb-lang_page_id'
   With polylang each "logical page" of a website is in fact a set of several pages, one for each language supported.
@@ -120,21 +115,21 @@ class PLL4PDb {
    */
   public function translate_string( $in_string )
   {
-    $lang = pll_current_language( 'slug' );
-
-    if ( $lang === '' || strpos( $in_string, '[:' ) === false ) {
-
+    if ( strpos( $in_string, '[:' ) === false ) 
       // not a multilingual string
       $translation = $in_string;
-    } else {
-
+    else {    
+      $lang = pll_current_language( 'slug' ); // current language set by polylang
+      if ( $lang === '' ) 
+          // May happen in the back end - select the default language in that case
+          $lang = pll_default_language( 'slug ' );
       /*
-       * Keep the substrings set for the current language, get rid of the ones 
+       * Keep the substrings set for the selected language, get rid of the ones 
        * set for other languages and replace all '[:xx]' with '[:]'.At the end 
        * remove all the remaining '[:]'
        * a string with no language-dependant substring remains unchanged
        */
-      $translation = preg_replace(
+       $translation = preg_replace(
               array( '/\[:' . $lang . '\](([^\[]|\[[^:])*)/s', '/\[:[a-z][a-z]\]([^\[]|\[[^:])*/s', '/\[:\]/' ),
               array( '[:]$1', '[:]', '' ),
               $in_string );
