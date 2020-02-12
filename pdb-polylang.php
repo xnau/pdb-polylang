@@ -7,12 +7,12 @@
  * @author            Pierre Fischer, xnau
  * @copyright         2020 Pierre Fischer
  * @license           GPL3
- * @version           1.2
+ * @version           1.0.0
  *
  * @wordpress-plugin
  * Plugin Name:       PLL4PDb
- * Description:       Enables the plugin participants-database (PDb) to run in a multilingual environment with polylang (PLL). Requires the Polylang plugin and Participants Database version 1.9.5.7 or higher.
- * Version:           1.2
+ * Description:       Enables the plugin participants-database (PDb) to run in a multilingual environment with polylang (PLL). Requires the Polylang plugin and Participants Database version 1.9.5.8 or higher.
+ * Version:           1.0.0
  * Requires at least: 5.2
  * Requires PHP:      5.6
  * Author:            Pierre Fischer
@@ -33,7 +33,7 @@
   PLL4PDb is responsible for filtering:
   - strings to be displayed
   - and page IDs
-  according to the current language defined by polylang.
+  according to the current language defined by polylang (or default language when current one is not defined).
 
   It defines two filters attached to the two filter hooks 'pdb-translate_string' and 'pdb-lang_page_id' used by participants-database :
 
@@ -68,7 +68,8 @@
   2- Filter attached to 'pdb-lang_page_id'
   With polylang each "logical page" of a website is in fact a set of several pages, one for each language supported.
   The filter attached to 'pdb-lang_page_id' receives the page Id of p as input: it returns the page Id of q, where q
-  is the page of the set of p that corresponds to the current language defined by polylang.
+  is the page of the set of p that corresponds to the current language defined by polylang or, when this one is not defined, by the 
+  default language of polylang.
 
  */
 
@@ -96,19 +97,15 @@ class PLL4PDb {
    */
   public function language_page_id( $in_id )
   {
-    if ( pll_current_language( 'slug' ) == '' ) {
-      
-      $out_id = $in_id;
-    } else {
-      
-      $out_id = pll_get_post( $in_id );
-    }
+    $lang = pll_current_language( 'slug' );
+    //WARNING : No === comparison below - When there is no current language, FALSE seems to be returned
+    if ( $lang  == '' ) $lang = pll_default_language( 'slug' );
     
-    return $out_id;
+    return pll_get_post( $in_id, $lang );
   }
 
   /**
-   * provides the currently selected language from a multilingual string
+   * from a multilingual string provides the string corresponding to the current (or default) polylang language
    * 
    * @param string $in_string the multilingual string
    * @return string
@@ -120,9 +117,12 @@ class PLL4PDb {
       $translation = $in_string;
     else {    
       $lang = pll_current_language( 'slug' ); // current language set by polylang
-      if ( $lang === '' ) 
+      /* Don't use === in the following comparison : FALSE is returned when there is no current language
+         even if this is not clearly defined in the spec
+      */
+      if ( $lang == '' ) 
           // May happen in the back end - select the default language in that case
-          $lang = pll_default_language( 'slug ' );
+          $lang = pll_default_language( 'slug' );
       /*
        * Keep the substrings set for the selected language, get rid of the ones 
        * set for other languages and replace all '[:xx]' with '[:]'.At the end 
