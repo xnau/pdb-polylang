@@ -1,48 +1,48 @@
 <?php
 
 /**
- * PLL4PDb
+ * PDb Polylang Adapter
  *
  * @package           WordPress
  * @author            Pierre Fischer, xnau
  * @copyright         2020 Pierre Fischer
  * @license           GPL3
- * @version           1.0.0
+ * @version           1.0.1
  *
  * @wordpress-plugin
- * Plugin Name:       PLL4PDb
- * Description:       Enables the plugin participants-database (PDb) to run in a multilingual environment with polylang (PLL). Requires the Polylang plugin and Participants Database version 1.9.5.8 or higher.
- * Version:           1.0.0
- * Requires at least: 5.2
+ * Plugin Name:       PDb Polylang Adapter
+ * Description:       Allows the plugin Participants Database to be used in a multilingual environment managed by Polylang.
+ * Version:           1.0.1
+ * Requires at least: 5.3
  * Requires PHP:      5.6
  * Author:            Pierre Fischer
  * License:           GPL3
  * License URI:       http://www.gnu.org/licenses/gpl-3.0.txt
- * Text Domain:       pll4pdb
+ * Text Domain:       pdb-polylang-adapter
  * Domain Path:       /languages
  */
  
-/* Desciption : See readme.txt file
+/* Description : See also readme.txt file
 
   Additional description:
 
-  This plugin enables the plugin participants-database (PDb) to run in a multilingual environment with polylang (PLL).
-  With PLL4PDb, supported languages are still defined by PLL. Selection of the current language is also still done by PLL.
-  Nevertheless translations of strings aren't managed by PLL but jointly by participants-database and PLL4PDb.
+  This plugin enables the plugin Participants Database to run in a multilingual environment with Polylang.
+  With PDb Polylang Adapter, supported languages are still defined by Polylang. Selection of the current language is also still done by Polylang.
+  Nevertheless translations of strings aren't managed by Polylang but jointly by Participants Database and this plugin.
 
-  PLL4PDb is responsible for filtering:
+  PDb Polylang Adapter is responsible for filtering:
   - strings to be displayed
   - and page IDs
-  according to the current language defined by polylang (or default language when current one is not defined).
+  according to the current language defined by Polylang (or default language when the current one is not defined).
 
-  It defines two filters attached to the two filter hooks 'pdb-translate_string' and 'pdb-lang_page_id' used by participants-database :
+  It defines two filters attached to the two filter hooks 'pdb-translate_string' and 'pdb-lang_page_id' used by Participants Database :
 
   1 - Filter attached to 'pdb-translate_string'
   This filter will process its input string which is supposed to be a multilingual string.
   A multilingual string is a string that may contain various substrings that should be displayed only
   for given languages.
 
-  With PLL4PDb the format of a multilingual string is close to the one used by QTranslate-X:
+  With PDb Polylang Adapter the format of a multilingual string is close to the one used by QTranslate-X:
 
   Language-neutral text[:x1]Text for language x1[:x2]Text for x2[:]another language-neutral text
   where
@@ -57,19 +57,31 @@
   as "Haus in Paris Hopla!" when the current language is de
   and as "House in Paris Yeah!" when the current language is en.
 
-  More precisely, with PLL4PDb a dynamic string of PDb is displayed as follows :
+  More precisely, with the plugin PDb Polylang Adapter a dynamic string of Participants Database is displayed as follows :
   a- When the string doesn't contain any language dependant substring it isn't modified and is displayed as it is.
   
-  b- The "current language" set by PLL is selected. When there is no such current language - which may happen in the back end 
-  when polylang wants to "Show all languages" -, the so called "default language" of polylang is selected instead.
+  b- The "current language" set by Polylang is selected. When there is no such current language - which may happen in the back end 
+  when polylang wants to "Show all languages" -, the so called "default language" of Polylang is selected instead.
   Then all the substrings corresponding to a language different from the selected one are removed before
   the string is displayed; the headers [:xx] are also removed.
 
   2- Filter attached to 'pdb-lang_page_id'
-  With polylang each "logical page" of a website is in fact a set of several pages, one for each language supported.
+  With Polylang each "logical page" of a website is in fact a set of several pages, one for each language supported.
   The filter attached to 'pdb-lang_page_id' receives the page Id of p as input: it returns the page Id of q, where q
-  is the page of the set of p that corresponds to the current language defined by polylang or, when this one is not defined, by the 
-  default language of polylang.
+  is the page of the set of p that corresponds to the current language defined by Polylang or, when this one is not defined, by the 
+  default language of Polylang.
+  
+  Warning (Note to software developpers of Participants Database)
+  ---------------------------------------------------------------
+  According to the above syntax of a multilingual string, a language dependant substring in such a string can terminate with the end of the whole string. This simplifies the input of multilingual strings for the user.
+	For instance entering "[:en]House[:fr]Maison" is simpler and quicker than entering "[:en]House[:fr]Maison[:]"
+	
+ Nevertheless it must be noted that this simplification is only acceptable if all the translations performed by PDb Polylang Adapter apply to parameters whose value is a multilingual string as it was input by the user. A translation request with a parameter consisting of a multilingual string concatenated to another string could produce incorrect and unpredictable results.
+	For instance, with $mls being a multilingual string whose value is "[:en]House[:fr]Maison" we shouldn't write:
+		echo apply_filters('pdb-translate_string','<div>'.$mls.'</div>')
+	But we must write instead:
+		echo '<div>'.apply_filters('pdb-translate_string',$mls).'</div>')
+	to avoid incorrect results in the case the language is english.
 
  */
 
@@ -77,7 +89,7 @@
 if ( !defined( 'ABSPATH' ) )
   exit;
 
-class PLL4PDb {
+class PDb_Polylang_Adapter {
 
   public function __construct()
   {
@@ -142,34 +154,34 @@ class PLL4PDb {
 
 
 // initialize plugin only after all plugins are loaded
-add_action( 'plugins_loaded' , 'pll4pdb_initialize' );
+add_action( 'plugins_loaded' , 'pdb_polylang_adapter_initialize' );
 
 
-function pll4pdb_initialize()
+function pdb_polylang_adapter_initialize()
 {
   /**
    * Check for Polylang and Participants Database before initializing
    */
   if ( function_exists( 'pll_current_language' ) && class_exists( 'Participants_Db' ) ) {
     // Load translations
-    load_plugin_textdomain ( 'pll4pdb', false, basename(rtrim(dirname(__FILE__), '/')) . '/languages' );
+    load_plugin_textdomain ( 'pdb-polylang-adapter', false, basename(rtrim(dirname(__FILE__), '/')) . '/languages' );
     // and instantiate the plugin class
-    new PLL4PDb();
+    new PDb_Polylang_Adapter();
   } else {
 
-    add_action( 'admin_notices', 'pll4pdb_pll_missing_error' );
-    add_action( 'admin_init', 'pll4pdb_deactivate_plugin' );
+    add_action( 'admin_notices', 'pdb_polylang_adapter_error' );
+    add_action( 'admin_init', 'pdb_polylang_adapter_deactivate_plugin' );
   }
 }
 
-function pll4pdb_deactivate_plugin()
+function pdb_polylang_adapter_deactivate_plugin()
 {
   deactivate_plugins( plugin_basename( __FILE__ ) );
 }
 
-function pll4pdb_pll_missing_error()
+function pdb_polylang_adapter_error()
 {
-  echo '<div class="notice notice-error is-dismissible"><p><span class="dashicons dashicons-warning"></span>' . __( 'The PLL4PDb plugin requires both the Polylang and Participants Database plugins. At least one of them is missing. PLL4PDb has been auto-deactivated.', 'pll4pdb' ) . '</p></div>';
+  echo '<div class="notice notice-error is-dismissible"><p><span class="dashicons dashicons-warning"></span>' . __( 'PDb Polylang Adapter requires both the Polylang and Participants Database plugins. At least one of them is missing. PDb Polylang Adapter has been auto-deactivated.', 'pdb-polylang-adapter' ) . '</p></div>';
   if ( isset( $_GET['activate'] ) ) {
     unset( $_GET['activate'] );
   }

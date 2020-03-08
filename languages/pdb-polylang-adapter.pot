@@ -1,7 +1,8 @@
+#, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: pll4pdb\n"
-"POT-Creation-Date: 2020-02-10 16:41+0100\n"
+"Project-Id-Version: PDb Polylang Adapter\n"
+"POT-Creation-Date: 2020-03-08 23:32+0100\n"
 "PO-Revision-Date: 2020-02-10 16:43+0100\n"
 "Last-Translator: Pierre Fischer <erpiu@oxilo.eu>\n"
 "Language-Team: \n"
@@ -13,10 +14,11 @@ msgstr ""
 "X-Poedit-Basepath: ..\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Poedit-KeywordsList: __;_e\n"
-"X-Poedit-SearchPath-0: pdb-polylang.php\n"
+"X-Poedit-SearchPath-0: .\n"
 
-#: pdb-polylang.php:174
+#: pdb-polylang-adapter.php:184
 msgid ""
-"The PLL4PDb plugin requires both the Polylang and Participants Database "
-"plugins. PLL4PDb has been auto-deactivated."
+"PDb Polylang Adapter requires both the Polylang and Participants "
+"Database plugins. At least one of them is missing. PDb Polylang Adapter "
+"has been auto-deactivated."
 msgstr ""
