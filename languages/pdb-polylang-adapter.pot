@@ -22,3 +22,7 @@ msgid ""
 "Database plugins. At least one of them is missing. PDb Polylang Adapter "
 "has been auto-deactivated."
 msgstr ""
+
+#. Description of the plugin
+msgid "Allows the plugin Participants Database to be used in a multilingual environment managed by Polylang."
+msgstr ""
