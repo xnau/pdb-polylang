@@ -7,12 +7,12 @@
  * @author            Pierre Fischer, xnau
  * @copyright         2020 Pierre Fischer
  * @license           GPL3
- * @version           1.0.1
+ * @version           1.0.0
  *
  * @wordpress-plugin
  * Plugin Name:       PDb Polylang Adapter
  * Description:       Allows the plugin Participants Database to be used in a multilingual environment managed by Polylang.
- * Version:           1.0.1
+ * Version:           1.0.0
  * Requires at least: 5.3
  * Requires PHP:      5.6
  * Author:            Pierre Fischer
@@ -22,7 +22,7 @@
  * Domain Path:       /languages
  */
  
-/* Description : See also readme.txt file
+/* Description : See readme.txt file
 
   Additional description:
 
