@@ -110,14 +110,16 @@ class PDb_Polylang_Adapter {
   public function language_page_id( $in_id )
   {
     $lang = pll_current_language( 'slug' );
-    //WARNING : No === comparison below - When there is no current language, FALSE seems to be returned
-    if ( $lang  == '' ) $lang = pll_default_language( 'slug' );
+
+    if ( $lang  === false )
+      $lang = pll_default_language( 'slug' );
     
     return pll_get_post( $in_id, $lang );
   }
 
   /**
-   * from a multilingual string provides the string corresponding to the current (or default) polylang language
+   * from a multilingual string provides the string corresponding to the current 
+   * (or default) polylang language
    * 
    * @param string $in_string the multilingual string
    * @return string
@@ -129,12 +131,12 @@ class PDb_Polylang_Adapter {
       $translation = $in_string;
     else {    
       $lang = pll_current_language( 'slug' ); // current language set by polylang
-      /* Don't use === in the following comparison : FALSE is returned when there is no current language
-         even if this is not clearly defined in the spec
-      */
-      if ( $lang == '' ) 
+      
+      if ( $lang === false ) {
           // May happen in the back end - select the default language in that case
           $lang = pll_default_language( 'slug' );
+      }
+      
       /*
        * Keep the substrings set for the selected language, get rid of the ones 
        * set for other languages and replace all '[:xx]' with '[:]'.At the end 
