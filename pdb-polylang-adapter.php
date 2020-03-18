@@ -21,7 +21,6 @@
  * Text Domain:       pdb-polylang-adapter
  * Domain Path:       /languages
  */
- 
 /* Description : See readme.txt file
 
   Additional description:
@@ -59,8 +58,8 @@
 
   More precisely, with the plugin PDb Polylang Adapter a dynamic string of Participants Database is displayed as follows :
   a- When the string doesn't contain any language dependant substring it isn't modified and is displayed as it is.
-  
-  b- The "current language" set by Polylang is selected. When there is no such current language - which may happen in the back end 
+
+  b- The "current language" set by Polylang is selected. When there is no such current language - which may happen in the back end
   when polylang wants to "Show all languages" -, the so called "default language" of Polylang is selected instead.
   Then all the substrings corresponding to a language different from the selected one are removed before
   the string is displayed; the headers [:xx] are also removed.
@@ -68,20 +67,20 @@
   2- Filter attached to 'pdb-lang_page_id'
   With Polylang each "logical page" of a website is in fact a set of several pages, one for each language supported.
   The filter attached to 'pdb-lang_page_id' receives the page Id of p as input: it returns the page Id of q, where q
-  is the page of the set of p that corresponds to the current language defined by Polylang or, when this one is not defined, by the 
+  is the page of the set of p that corresponds to the current language defined by Polylang or, when this one is not defined, by the
   default language of Polylang.
-  
+
   Warning (Note to software developpers of Participants Database)
   ---------------------------------------------------------------
   According to the above syntax of a multilingual string, a language dependant substring in such a string can terminate with the end of the whole string. This simplifies the input of multilingual strings for the user.
-	For instance entering "[:en]House[:fr]Maison" is simpler and quicker than entering "[:en]House[:fr]Maison[:]"
-	
- Nevertheless it must be noted that this simplification is only acceptable if all the translations performed by PDb Polylang Adapter apply to parameters whose value is a multilingual string as it was input by the user. A translation request with a parameter consisting of a multilingual string concatenated to another string could produce incorrect and unpredictable results.
-	For instance, with $mls being a multilingual string whose value is "[:en]House[:fr]Maison" we shouldn't write:
-		echo apply_filters('pdb-translate_string','<div>'.$mls.'</div>')
-	But we must write instead:
-		echo '<div>'.apply_filters('pdb-translate_string',$mls).'</div>')
-	to avoid incorrect results in the case the language is english.
+  For instance entering "[:en]House[:fr]Maison" is simpler and quicker than entering "[:en]House[:fr]Maison[:]"
+
+  Nevertheless it must be noted that this simplification is only acceptable if all the translations performed by PDb Polylang Adapter apply to parameters whose value is a multilingual string as it was input by the user. A translation request with a parameter consisting of a multilingual string concatenated to another string could produce incorrect and unpredictable results.
+  For instance, with $mls being a multilingual string whose value is "[:en]House[:fr]Maison" we shouldn't write:
+  echo apply_filters('pdb-translate_string','<div>'.$mls.'</div>')
+  But we must write instead:
+  echo '<div>'.apply_filters('pdb-translate_string',$mls).'</div>')
+  to avoid incorrect results in the case the language is english.
 
  */
 
@@ -93,7 +92,7 @@ class PDb_Polylang_Adapter {
 
   public function __construct()
   {
-    /* 
+    /*
      * Participants Database places a handler on this filter at priority 20, so 
      * this one will be applied before that and essentially override it
      */
@@ -111,9 +110,9 @@ class PDb_Polylang_Adapter {
   {
     $lang = pll_current_language( 'slug' );
 
-    if ( $lang  === false )
+    if ( $lang === false )
       $lang = pll_default_language( 'slug' );
-    
+
     return pll_get_post( $in_id, $lang );
   }
 
@@ -126,26 +125,37 @@ class PDb_Polylang_Adapter {
    */
   public function translate_string( $in_string )
   {
-    if ( strpos( $in_string, '[:' ) === false ) 
+    // paramter must be a string
+    if ( !is_string( $in_string ) ) {
+      if ( PDB_DEBUG ) {
+        ob_start();
+        var_dump($in_string);
+        error_log(__METHOD__.' non-string parameter sent to pdb-translate_string filter: ' . ob_get_clean() );
+//        error_log(__METHOD__.' trace: '.print_r(wp_debug_backtrace_summary(),1));
+      }
+      return $in_string;
+    }
+    
+    if ( strpos( $in_string, '[:' ) === false )
       // not a multilingual string
       $translation = $in_string;
-    else {    
+    else {
       $lang = pll_current_language( 'slug' ); // current language set by polylang
-      
+
       if ( $lang === false ) {
-          // May happen in the back end - select the default language in that case
-          $lang = pll_default_language( 'slug' );
+        // May happen in the back end - select the default language in that case
+        $lang = pll_default_language( 'slug' );
       }
-      
+
       /*
        * Keep the substrings set for the selected language, get rid of the ones 
        * set for other languages and replace all '[:xx]' with '[:]'.At the end 
        * remove all the remaining '[:]'
        * a string with no language-dependant substring remains unchanged
        */
-       $translation = preg_replace(
-              array( '/\[:' . $lang . '\](([^\[]|\[[^:])*)/s', '/\[:[a-z][a-z]\]([^\[]|\[[^:])*/s', '/\[:\]/' ),
-              array( '[:]$1', '[:]', '' ),
+      $translation = preg_replace(
+              array('/\[:' . $lang . '\](([^\[]|\[[^:])*)/s', '/\[:[a-z][a-z]\]([^\[]|\[[^:])*/s', '/\[:\]/'),
+              array('[:]$1', '[:]', ''),
               $in_string );
     }
 
@@ -154,10 +164,8 @@ class PDb_Polylang_Adapter {
 
 }
 
-
 // initialize plugin only after all plugins are loaded
-add_action( 'plugins_loaded' , 'pdb_polylang_adapter_initialize' );
-
+add_action( 'plugins_loaded', 'pdb_polylang_adapter_initialize' );
 
 function pdb_polylang_adapter_initialize()
 {
@@ -166,7 +174,7 @@ function pdb_polylang_adapter_initialize()
    */
   if ( function_exists( 'pll_current_language' ) && class_exists( 'Participants_Db' ) ) {
     // Load translations
-    load_plugin_textdomain ( 'pdb-polylang-adapter', false, basename(rtrim(dirname(__FILE__), '/')) . '/languages' );
+    load_plugin_textdomain( 'pdb-polylang-adapter', false, basename( rtrim( dirname( __FILE__ ), '/' ) ) . '/languages' );
     // and instantiate the plugin class
     new PDb_Polylang_Adapter();
   } else {
