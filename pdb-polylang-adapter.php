@@ -68,19 +68,20 @@ class PDb_Polylang_Adapter {
   {
     // paramter must be a string
     if ( !is_string( $in_string ) ) {
-      if ( PDB_DEBUG ) {
+      if ( PDB_DEBUG > 2 ) {
         ob_start();
-        var_dump($in_string);
-        error_log(__METHOD__.' non-string parameter sent to pdb-translate_string filter: ' . ob_get_clean() );
+        var_dump( $in_string );
+        error_log( __METHOD__ . ' non-string parameter sent to pdb-translate_string filter: ' . ob_get_clean() );
 //        error_log(__METHOD__.' trace: '.print_r(wp_debug_backtrace_summary(),1));
       }
       return $in_string;
     }
-    
-    if ( strpos( $in_string, '[:' ) === false )
+
+    // this assumes that the mutilingual string us using square brackets only
+    if ( strpos( $in_string, '[:' ) === false ) {
       // not a multilingual string
       $translation = $in_string;
-    else {
+    } else {
       $lang = pll_current_language( 'slug' ); // current language set by polylang
 
       if ( $lang === false ) {
@@ -108,6 +109,9 @@ class PDb_Polylang_Adapter {
 // initialize plugin only after all plugins are loaded
 add_action( 'plugins_loaded', 'pdb_polylang_adapter_initialize' );
 
+/**
+ * sets up the actions an initializes the main class instance
+ */
 function pdb_polylang_adapter_initialize()
 {
   /**
@@ -125,11 +129,17 @@ function pdb_polylang_adapter_initialize()
   }
 }
 
+/**
+ * deactivates the plugin
+ */
 function pdb_polylang_adapter_deactivate_plugin()
 {
   deactivate_plugins( plugin_basename( __FILE__ ) );
 }
 
+/**
+ * prints the error notice
+ */
 function pdb_polylang_adapter_error()
 {
   echo '<div class="notice notice-error is-dismissible"><p><span class="dashicons dashicons-warning"></span>' . __( 'PDb Polylang Adapter requires both the Polylang and Participants Database plugins. At least one of them is missing. PDb Polylang Adapter has been auto-deactivated.', 'pdb-polylang-adapter' ) . '</p></div>';
